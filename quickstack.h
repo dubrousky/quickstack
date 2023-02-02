@@ -5,7 +5,8 @@
 #define PACKAGE_VERSION 1
 
 #include <bfd.h>
-#include <bits/types/struct_iovec.h>
+//#include <bits/types/struct_iovec.h>
+#include <sys/uio.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

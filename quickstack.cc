@@ -35,9 +35,9 @@ bool lock_all = false;
 
 const char* debug_dir = "/usr/lib/debug";
 int* _attach_started = nullptr;
-stopper_symbol stopper[3] = {
-    {"main", 0, 0}, {"start_thread", 0, 0}, {"do_sigwait", 0, 0}};
-int num_stopper_symbol = 3;
+stopper_symbol stopper[4] = {
+    {"main", 0, 0}, {"start_thread", 0, 0}, {"do_sigwait", 0, 0}, {"pythread_wrapper", 0, 0}};
+int num_stopper_symbol = 4;
 string basic_libs[10] = {"ld-",
                          "libaio.",
                          "libc-",
@@ -327,6 +327,9 @@ void load_stopper_symbols(symbol_table* sorted_st,
         matched_stopper = j;
       }
     }
+  }
+  for (int j = 0; j < num_stopper_symbol; j++) {
+      DBG(1, "Stopper symbol %d: %lx %lx", j, stopper[j].addr_begin, stopper[j].addr_end);
   }
 }
 
@@ -678,7 +681,7 @@ static int get_stack_trace(int pid,
   vals_r.push_back(top_addr);
   n_frames++;
   if (is_stopper_addr(top_addr)) {
-    DBG(3, "Matched stopper func.", 0);
+    DBG(3, "Matched stopper func at %lx.", top_addr, 0);
     return 0;
   }
 
@@ -691,7 +694,7 @@ static int get_stack_trace(int pid,
     ulong retaddr = 0;
     retaddr = ptrace(PTRACE_PEEKDATA, pid, sp, 0);
     if (errno != 0) {
-      DBG(3, "Got error %d on PTRACE_PEEKDATA", errno);
+      DBG(3, "Got error %d on PTRACE_PEEKDATA at %lx", errno, sp);
       break;
     }
     n_scanned++;
@@ -779,7 +782,7 @@ static int get_stack_trace(int pid,
       }
     }
     if (is_stopper_addr(retaddr)) {
-      DBG(3, "Matched stopper func.", 0);
+      DBG(3, "Matched stopper func at %lx.", retaddr, 0);
       if (vals_r.size() == 2 && second_addr && second_addr != retaddr) {
         DBG(10, "Putting second_addr.");
         vals_r.pop_back();
@@ -1066,7 +1069,7 @@ void attach_and_dump_all(const thread_list& threads,
     if (kill(threads[i].tid, 0) != 0) {
       DBG(11, "kill(0) failed (pid not exist): %d", threads[i].tid);
       fails[i] = true;
-      continue;
+      //continue;
     }
     if (is_pid_stopped(threads[i].tid)) {
       DBG(3, "PID %d stops. Skipping tracing the pid.", threads[i].tid);
@@ -1135,7 +1138,7 @@ void attach_and_dump_lock_all(const thread_list& threads,
 }
 
 void dump_stack(const thread_list& threads) {
-  uint trace_length = 1000;
+  uint trace_length = 10000;
   symbol_table_map* stmap = new symbol_table_map();
   proc_info* pinfos = new proc_info[threads.size()];
   vector<ulong>* vals_sps = new vector<ulong>[threads.size()];
@@ -1268,7 +1271,7 @@ static void usage_exit() {
       "debug level is higher than N. This is for performance reason and "
       "default level (10) should be fine in most of cases.\n");
   printf(
-      " -f, --multipe_targets=[0|1]    :Set 1 if tracing multiple different "
+      " -m, --multiple_targets=[0|1]    :Set 1 if tracing multiple different "
       "processes at one time\n");
   printf(
       " -w, --flush_log=N              :Flushing every log output if log level "
@@ -1287,7 +1290,7 @@ static void usage_exit() {
 static void get_options(int argc, char** argv) {
   int c, opt_ind = 0;
   while ((c = getopt_long(
-              argc, argv, "?absnflvw:k:d:c:t:p:o:", long_options, &opt_ind)) !=
+              argc, argv, "?absnflvw:k:d:c:t:p:o:m:", long_options, &opt_ind)) !=
          EOF) {
     switch (c) {
     case '?':
