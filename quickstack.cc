@@ -4,6 +4,9 @@
 #include <asm/unistd.h>
 #include <getopt.h>
 #include <sys/mman.h>
+#include <sys/syscall.h>
+#include <signal.h>
+#include <unistd.h>
 
 #include <sstream>
 
@@ -1066,10 +1069,12 @@ void attach_and_dump_all(const thread_list& threads,
 
     fails[i] = false;
     // do not attach if pid does not exist
-    if (kill(threads[i].tid, 0) != 0) {
+    // if (kill(threads[i].tid, 0) != 0) {
+    //if (syscall(SYS_tkill, threads[i].tid, 0) != 0) {
+    if (syscall(SYS_tgkill, target_pid, threads[i].tid, 0) != 0) {
       DBG(11, "kill(0) failed (pid not exist): %d", threads[i].tid);
-      fails[i] = true;
-      //continue;
+      fails[i] = true; // this check seems not valid for threads check
+      continue;
     }
     if (is_pid_stopped(threads[i].tid)) {
       DBG(3, "PID %d stops. Skipping tracing the pid.", threads[i].tid);
@@ -1079,9 +1084,11 @@ void attach_and_dump_all(const thread_list& threads,
     int rc = ptrace_attach_proc(threads[i].tid);
     if (rc != 0) {
       fails[i] = true;
+      DBG(3, "Failed to attach to process %d", threads[i].tid);
     } else {
       if (get_user_regs(threads[i].tid, iovecs[i]) != 0) {
         fails[i] = true;
+        DBG(3, "Failed to obtain user registers for process %d", threads[i].tid);
       } else {
         if (max_ptrace_calls &&
             get_stack_trace(threads[i].tid,
@@ -1197,6 +1204,8 @@ void dump_stack(const thread_list& threads) {
                     name_info.c_str());
       }
       parse_stack_trace(pinfos[i], vals_sps[i], trace_length);
+    } else {
+        DBG(3, "Thread (LWP %d) stack unavailable", threads[i].tid);
     }
   }
   if (stack_out_fp) {

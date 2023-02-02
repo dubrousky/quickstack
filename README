@@ -21,8 +21,40 @@ sudo apt-get install binutils-dev
 sudo apt-get install libelf-dev
 sudo apt-get install libiberty-dev
 
+Install dependencies (CentOS7):
+sudo yum install binutils-dev
+sudo yum install libelf-dev
+sudo yum install libiberty-dev
+
+CMAKE_VERSION needs to be adjusted to 2.8
+
+
+
+```
+quickstack version 0.10
+Usage:
+ quickstack [OPTIONS]
 
 Example:
-[user$] quickstack -f -p `pidof mysqld`
+ quickstack -p `pidof mysqld`
+
+Options (short name):
+ -p, --pid=N                    :Target process id
+ -d, --debug=N                  :Debug level
+ -s, --single_line              :Printing call stack info into one line per process, instead of gdb-like output
+ -n, --thread_names             :Print thread names
+ -c, --calls=N                  :Maximum ptrace call counts per process. Default is 1000
+ -b, --basename_only            :Suppressing printing directory name of the target source files, but printing basename only. This makes easier for reading.
+ -f, --frame_check              :Checking frame pointers on non-standard libraries.
+ -o, --stack_out=f              :Writing stack traces to this file. Default is STDOUT.
+ -t, --debug_print_time_level=N :Suppressing printing timestamp if debug level is higher than N. This is for performance reason and default level (10) should be fine in most of cases.
+ -m, --multiple_targets=[0|1]    :Set 1 if tracing multiple different processes at one time
+ -w, --flush_log=N              :Flushing every log output if log level is equal or under N
+ -k, --timeout_seconds=N        :Terminates quickstack if exceeding N seconds. Default is 600 seconds
+ -l, --lock_all                 :Locking main process (given by --pid) during parsing all other processes. This will lock the whole process during taking all stack traces, so stall time is slightly increased, but will give more accurate results.
+```
+
+
+
 
 License: BSD 3-Clause License
